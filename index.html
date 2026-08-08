@@ -1,0 +1,369 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inkpage — a cozy notebook arcade for Android</title>
+<meta name="description" content="Inkpage is a cozy, hand-drawn arcade game set inside a school notebook. Free on Google Play.">
+<meta property="og:title" content="Inkpage">
+<meta property="og:description" content="A cozy, hand-drawn arcade game set inside a school notebook. Free on Google Play.">
+<meta property="og:type" content="website">
+
+<style>
+/* ─── Palet: oyunun kendi temalarından (lib/theme/themes.dart) ───────────
+   Açık  = "defter" teması (Bölüm 1)
+   Koyu  = "negatif ∞" teması (Sonsuzluk)
+   Uydurma bir dark mode değil; oyunun kendi karanlık hâli.            */
+:root {
+  --page:        #F6EFDA;
+  --page-edge:   #E4D5B0;
+  --ink:         #2A1C0E;
+  --ink-soft:    rgba(42, 28, 14, .64);
+  --ink-faint:   rgba(42, 28, 14, .34);
+  --rule:        rgba(58, 92, 130, .26);
+  --margin:      #B8472F;
+  --accent:      #B8472F;
+  --accent-deep: #8E2A20;
+  --on-accent:   #FFF6E4;
+  --hole:        rgba(42, 28, 14, .13);
+  --hole-shade:  rgba(0, 0, 0, .18);
+  --focus:       #2A5A8A;
+
+  --lh: 32px;              /* satır aralığı = defter çizgi aralığı */
+  --marginX: 84px;         /* kırmızı marj çizgisinin yeri */
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page:        #0D0A08;
+    --page-edge:   #171210;
+    --ink:         #F6F1E6;
+    --ink-soft:    rgba(246, 241, 230, .62);
+    --ink-faint:   rgba(246, 241, 230, .30);
+    --rule:        rgba(246, 241, 230, .09);
+    --margin:      #FFD86B;
+    --accent:      #FFD86B;
+    --accent-deep: #E8BE4A;
+    --on-accent:   #0D0A08;
+    --hole:        rgba(246, 241, 230, .10);
+    --hole-shade:  rgba(0, 0, 0, .45);
+    --focus:       #8FD9FF;
+  }
+}
+:root[data-theme="dark"] {
+  --page:        #0D0A08;
+  --page-edge:   #171210;
+  --ink:         #F6F1E6;
+  --ink-soft:    rgba(246, 241, 230, .62);
+  --ink-faint:   rgba(246, 241, 230, .30);
+  --rule:        rgba(246, 241, 230, .09);
+  --margin:      #FFD86B;
+  --accent:      #FFD86B;
+  --accent-deep: #E8BE4A;
+  --on-accent:   #0D0A08;
+  --hole:        rgba(246, 241, 230, .10);
+  --hole-shade:  rgba(0, 0, 0, .45);
+  --focus:       #8FD9FF;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 400 17px/var(--lh) ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+/* ─── Sayfa: arkada defter çizgileri + solda kırmızı marj ─────────────── */
+.sheet {
+  position: relative;
+  max-width: 660px;
+  margin: 0 auto;
+  padding: 0 28px 0 var(--marginX);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--lh) - 1px),
+    var(--rule) calc(var(--lh) - 1px),
+    var(--rule) var(--lh)
+  );
+  background-position: 0 0;
+}
+/* kırmızı marj çizgisi */
+.sheet::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  left: calc(var(--marginX) - 26px);
+  width: 2px;
+  background: var(--margin);
+  opacity: .55;
+}
+/* delgeç delikleri */
+.holes {
+  position: absolute;
+  left: 22px; top: calc(var(--lh) * 3);
+  display: grid;
+  gap: calc(var(--lh) * 5);
+}
+.holes i {
+  display: block;
+  width: 17px; height: 17px;
+  border-radius: 50%;
+  background: var(--hole);
+  box-shadow: inset 0 1px 1px var(--hole-shade);
+}
+
+/* ─── Blok ritmi: her şey 32px'in katı ────────────────────────────────── */
+.band { padding-block: var(--lh); }
+h1, h2, h3, p, ul, .meta { margin: 0; }
+p + p { margin-top: var(--lh); }
+
+/* ─── Kapak: defterin üstüne blok harflerle yazılmış ad ───────────────── */
+.eyebrow {
+  font: 600 12px/var(--lh) ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+h1 {
+  font: 800 clamp(46px, 13vw, 78px)/calc(var(--lh) * 2) ui-sans-serif, -apple-system,
+        "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  display: flex;
+  flex-wrap: wrap;
+}
+h1 span { display: inline-block; }
+.tagline {
+  font-size: 21px;
+  line-height: var(--lh);
+  color: var(--ink-soft);
+  max-width: 30ch;
+  text-wrap: balance;
+}
+
+/* mürekkep damlası — oyunun maskotu */
+.drop { width: 34px; height: 44px; vertical-align: -10px; margin-right: 10px; }
+.drop .body { fill: var(--accent); }
+.drop .eye  { fill: var(--on-accent); }
+
+/* ─── İndirme kutusu: sayfanın tek gür öğesi ──────────────────────────── */
+.get {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: calc(var(--lh) * 2);
+  padding: 0 26px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 700 17px/1 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: .03em;
+  text-decoration: none;
+  border: 2px solid var(--accent-deep);
+  border-radius: 3px;
+  /* kalemle iki kez çevrelenmiş his */
+  box-shadow: 4px 4px 0 var(--accent-deep);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.get:hover, .get:focus-visible {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--accent-deep);
+}
+.get:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--accent-deep); }
+.get svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
+
+.free {
+  font: 400 14px/var(--lh) ui-serif, Georgia, serif;
+  color: var(--ink-faint);
+  margin-top: 14px;
+}
+
+/* ─── Açılmazsa paneli — sayfanın asıl işi bu ─────────────────────────── */
+.rescue {
+  display: none;
+  border-left: 3px solid var(--accent);
+  padding-left: 18px;
+}
+.rescue.on { display: block; }
+.rescue h2 {
+  font: 700 15px/var(--lh) ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.rescue p { font-size: 15px; color: var(--ink-soft); }
+.copyrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.link {
+  flex: 1 1 240px;
+  min-width: 0;
+  font: 400 13px/calc(var(--lh) - 8px) ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--ink);
+  background: var(--page-edge);
+  border: 1px solid var(--ink-faint);
+  border-radius: 3px;
+  padding: 4px 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.copy {
+  font: 600 14px/1 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: transparent;
+  border: 1.5px solid var(--ink-faint);
+  border-radius: 3px;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.copy:hover, .copy:focus-visible { border-color: var(--accent); color: var(--accent); }
+
+/* ─── Özellikler: kart değil, marj notu ───────────────────────────────── */
+h2.sec {
+  font: 700 12px/var(--lh) ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+ul.notes { list-style: none; padding: 0; }
+ul.notes li {
+  position: relative;
+  padding-left: 26px;
+  line-height: var(--lh);
+  color: var(--ink-soft);
+}
+ul.notes li b { color: var(--ink); font-weight: 600; }
+/* elle çizilmiş çentik */
+ul.notes li::before {
+  content: "";
+  position: absolute;
+  left: 2px; top: 15px;
+  width: 13px; height: 2px;
+  background: var(--accent);
+  opacity: .8;
+}
+
+/* ─── Alt bilgi ───────────────────────────────────────────────────────── */
+footer { border-top: 1px solid var(--rule); }
+.meta {
+  font: 400 13px/var(--lh) ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--ink-faint);
+}
+.meta a { color: var(--ink-soft); text-decoration-color: var(--ink-faint); }
+.meta a:hover { color: var(--accent); }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+/* ─── Açılış: oyunun splash'indeki harf harf düşme ────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  h1 span { animation: drop .5s cubic-bezier(.2, .8, .3, 1) backwards; }
+  @keyframes drop {
+    from { transform: translateY(-.42em); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+  }
+}
+
+@media (max-width: 560px) {
+  :root { --marginX: 46px; }
+  .holes { display: none; }
+  .sheet::before { left: 22px; }
+  body { font-size: 16px; }
+  .tagline { font-size: 19px; }
+}
+</style>
+
+<div class="sheet">
+  <div class="holes" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <header class="band">
+    <span class="eyebrow">Android · Google Play</span>
+  </header>
+
+  <section class="band">
+    <h1 aria-label="Inkpage">
+      <svg class="drop" viewBox="0 0 34 44" aria-hidden="true">
+        <path class="body" d="M17 1C17 1 3 20 3 29a14 14 0 0 0 28 0C31 20 17 1 17 1Z"/>
+        <circle class="eye" cx="12" cy="28" r="2.6"/>
+        <circle class="eye" cx="22" cy="28" r="2.6"/>
+      </svg><span>I</span><span>N</span><span>K</span><span>P</span><span>A</span><span>G</span><span>E</span>
+    </h1>
+    <p class="tagline">A tiny ink drop defends the bottom of the page. You have a slingshot and a pen.</p>
+  </section>
+
+  <section class="band">
+    <a class="get" id="get" href="https://play.google.com/store/apps/details?id=com.evrehim.inkpage">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v13m0 0 5-5m-5 5-5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 19h18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Download on Google Play
+    </a>
+    <p class="free">Free to play. Contains ads and optional in-app purchases.</p>
+  </section>
+
+  <section class="band rescue" id="rescue">
+    <h2>Didn't open?</h2>
+    <p>Instagram's built-in browser blocks Play Store links on some phones. Copy this and paste it into Chrome — or search <b>Inkpage</b> in the Play Store app.</p>
+    <div class="copyrow">
+      <code class="link" id="url">https://play.google.com/store/apps/details?id=com.evrehim.inkpage</code>
+      <button class="copy" type="button" id="copy">Copy link</button>
+    </div>
+  </section>
+
+  <section class="band">
+    <h2 class="sec">What it is</h2>
+    <ul class="notes">
+      <li><b>Two weapons, one resource.</b> The sling is free and endless. The pen fires fast but drinks ink.</li>
+      <li><b>Drawn like a real notebook.</b> Twelve themes, from ruled paper to sumi-e to blueprint.</li>
+      <li><b>Short runs.</b> Built for the three minutes you actually have.</li>
+      <li><b>Plays in 21 languages.</b></li>
+    </ul>
+  </section>
+
+  <footer class="band">
+    <p class="meta">
+      <a href="https://instagram.com/inkpage_game">@inkpage_game</a> ·
+      <a href="https://sites.google.com/view/inkpage">Privacy</a> ·
+      <a href="mailto:newbardevelop@outlook.com">newbardevelop@outlook.com</a>
+    </p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  /* Sayfanın asıl işi: Play Store açılmazsa çıkış yolu göster.
+     Bağlantıya basıldıktan ~1,4 sn sonra HÂLÂ buradaysak açılmamıştır. */
+  var left = false;
+  ['pagehide', 'blur'].forEach(function (e) {
+    window.addEventListener(e, function () { left = true; });
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') left = true;
+  });
+
+  document.getElementById('get').addEventListener('click', function () {
+    setTimeout(function () {
+      if (!left && document.visibilityState === 'visible') {
+        document.getElementById('rescue').classList.add('on');
+      }
+    }, 1400);
+  });
+
+  var btn = document.getElementById('copy');
+  btn.addEventListener('click', function () {
+    var node = document.getElementById('url');
+    var url = node.textContent.trim();
+    function select() {
+      var r = document.createRange();
+      r.selectNodeContents(node);
+      var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+    function done() {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy link'; }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, select);
+    } else { select(); }
+  });
+
+  /* Harf harf düşme — oyunun splash ekranındaki jestin aynısı. */
+  document.querySelectorAll('h1 span').forEach(function (s, i) {
+    s.style.animationDelay = (i * 0.06 + 0.1) + 's';
+  });
+}());
+</script>
