@@ -1,0 +1,375 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inkpage — a cozy notebook arcade for Android</title>
+<meta name="description" content="Inkpage is a cozy, hand-drawn arcade game set inside a school notebook. Free on Google Play.">
+<meta property="og:title" content="Inkpage">
+<meta property="og:description" content="A cozy, hand-drawn arcade game set inside a school notebook. Free on Google Play.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/webp;base64,UklGRsICAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSI0AAAABgBvZkiKplskX3nWIGT1kZrCC6birvrhd4mkRMQHkolB7+iV4Wz4mrRC5yEWpDaxvkuSk+AuG7bDBM0qBA/5g/Q9bfwUGigaFibAGS/8BVcEF2n9q/98iWt9XHcGxL6zB0snBaBik/Rv82vvF2k/hOwyLDWGDe5icFFvC+jJOTnKRv9K78nt87Vf95CIAVlA4IA4CAACwCgCdASogACAAPm0ulEakIiIhKAqogA2JbACdMoSBCKsOz9AG2g3AG8AbyDZgjQPuKmRo/Zm3kD+l/+l7g/6wf6MNvlK4prwrg2hWfkCI1w0hKdkQMiJ20AUhHIOgAP70W+VTO9hv5figsN+roKeLtgab8tW07ndG+WOH73XQbFjp4vpDbVSffA1bPljRTqn2xGbrrgWq7nT52z7o1V3q8c7Rj+l7EST3z75mIw9Ar4re7xBQvUPiKX8JFctUkWM4mBh2EmfkmAYoeA4d4f9QaNbszDzQBxN3MQT4RthJgIGu5WPnPMPlbwdht/eiNq3pL/+QQP3Lky7QRj5z3CRt++iAfVOszbhIJwVeD8rm4+VD/o+fWnFEyWW0HS9Ub4n99LDfAOCbVj2UVOLFy/qMEWKialuqabwSzM3m6ACfoyWVkNbWJVTzAt0W28cnY/Zx8s56ucIPDOEQ8eTJR99uocZX4UesiRpQ5ZDJevcJ/+6zqkU4k5w/3rgqC5VHOUHC8V0sp8eNj2+pGx7R4QcQcUGy4lPAon6k+T6jUYvjQRtfb4PgyEBt14rWP2iSmdDeoY/J2N8Z7yosEoZ3Fevyww1jbx7SmXqpxCzIN+4JW9i6FHpwt5p/yPQ8zaUzJ+wzHarx7sGQCYwduUQ8ZzgLGdmTgOVYTY1MbnOnywLrNX05JEnkQa4/EL2HIAAA">
+
+<style>
+/* ─── Palet: oyunun kendi temalarından (lib/theme/themes.dart) ───────────
+   Açık  = "defter" teması (Bölüm 1)
+   Koyu  = "negatif ∞" teması (Sonsuzluk)
+   Uydurma bir dark mode değil; oyunun kendi karanlık hâli.            */
+:root {
+  --page:        #F6EFDA;
+  --page-edge:   #E4D5B0;
+  --ink:         #2A1C0E;
+  --ink-soft:    rgba(42, 28, 14, .64);
+  --ink-faint:   rgba(42, 28, 14, .34);
+  --rule:        rgba(58, 92, 130, .26);
+  --margin:      #B8472F;
+  --accent:      #B8472F;
+  --accent-deep: #8E2A20;
+  --on-accent:   #FFF6E4;
+  --hole:        rgba(42, 28, 14, .13);
+  --hole-shade:  rgba(0, 0, 0, .18);
+  --mark-shade:  rgba(42, 28, 14, .30);
+  --focus:       #2A5A8A;
+
+  --lh: 32px;              /* satır aralığı = defter çizgi aralığı */
+  --marginX: 84px;         /* kırmızı marj çizgisinin yeri */
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page:        #0D0A08;
+    --page-edge:   #171210;
+    --ink:         #F6F1E6;
+    --ink-soft:    rgba(246, 241, 230, .62);
+    --ink-faint:   rgba(246, 241, 230, .30);
+    --rule:        rgba(246, 241, 230, .09);
+    --margin:      #FFD86B;
+    --accent:      #FFD86B;
+    --accent-deep: #E8BE4A;
+    --on-accent:   #0D0A08;
+    --hole:        rgba(246, 241, 230, .10);
+    --hole-shade:  rgba(0, 0, 0, .45);
+    --mark-shade:  rgba(0, 0, 0, .55);
+    --focus:       #8FD9FF;
+  }
+}
+:root[data-theme="dark"] {
+  --page:        #0D0A08;
+  --page-edge:   #171210;
+  --ink:         #F6F1E6;
+  --ink-soft:    rgba(246, 241, 230, .62);
+  --ink-faint:   rgba(246, 241, 230, .30);
+  --rule:        rgba(246, 241, 230, .09);
+  --margin:      #FFD86B;
+  --accent:      #FFD86B;
+  --accent-deep: #E8BE4A;
+  --on-accent:   #0D0A08;
+  --hole:        rgba(246, 241, 230, .10);
+  --hole-shade:  rgba(0, 0, 0, .45);
+  --mark-shade:  rgba(0, 0, 0, .55);
+  --focus:       #8FD9FF;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 400 17px/var(--lh) ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+/* ─── Sayfa: arkada defter çizgileri + solda kırmızı marj ─────────────── */
+.sheet {
+  position: relative;
+  max-width: 660px;
+  margin: 0 auto;
+  padding: 0 28px 0 var(--marginX);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--lh) - 1px),
+    var(--rule) calc(var(--lh) - 1px),
+    var(--rule) var(--lh)
+  );
+  background-position: 0 0;
+}
+/* kırmızı marj çizgisi */
+.sheet::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  left: calc(var(--marginX) - 26px);
+  width: 2px;
+  background: var(--margin);
+  opacity: .55;
+}
+/* delgeç delikleri */
+.holes {
+  position: absolute;
+  left: 22px; top: calc(var(--lh) * 3);
+  display: grid;
+  gap: calc(var(--lh) * 5);
+}
+.holes i {
+  display: block;
+  width: 17px; height: 17px;
+  border-radius: 50%;
+  background: var(--hole);
+  box-shadow: inset 0 1px 1px var(--hole-shade);
+}
+
+/* ─── Blok ritmi: her şey 32px'in katı ────────────────────────────────── */
+.band { padding-block: var(--lh); }
+h1, h2, h3, p, ul, .meta { margin: 0; }
+p + p { margin-top: var(--lh); }
+
+/* ─── Kapak: defterin üstüne blok harflerle yazılmış ad ───────────────── */
+.eyebrow {
+  font: 600 12px/var(--lh) ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+h1 {
+  font: 800 clamp(46px, 13vw, 78px)/calc(var(--lh) * 2) ui-sans-serif, -apple-system,
+        "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  display: flex;
+  flex-wrap: wrap;
+}
+h1 span { display: inline-block; }
+.tagline {
+  font-size: 21px;
+  line-height: var(--lh);
+  color: var(--ink-soft);
+  max-width: 30ch;
+  text-wrap: balance;
+}
+
+/* uygulama rozeti — Play Store'daki ikonun kendisi.
+   Köşeleri saydam (siyah köşeler kağıt zeminde kare gibi duruyordu). */
+.mark {
+  width: 60px; height: 60px;
+  margin-right: 16px;
+  align-self: center;
+  flex: none;
+  filter: drop-shadow(0 2px 6px var(--mark-shade));
+}
+
+/* ─── İndirme kutusu: sayfanın tek gür öğesi ──────────────────────────── */
+.get {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: calc(var(--lh) * 2);
+  padding: 0 26px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 700 17px/1 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: .03em;
+  text-decoration: none;
+  border: 2px solid var(--accent-deep);
+  border-radius: 3px;
+  /* kalemle iki kez çevrelenmiş his */
+  box-shadow: 4px 4px 0 var(--accent-deep);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.get:hover, .get:focus-visible {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--accent-deep);
+}
+.get:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--accent-deep); }
+.get svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
+
+.free {
+  font: 400 14px/var(--lh) ui-serif, Georgia, serif;
+  color: var(--ink-faint);
+  margin-top: 14px;
+}
+
+/* ─── Açılmazsa paneli — sayfanın asıl işi bu ─────────────────────────── */
+.rescue {
+  display: none;
+  border-left: 3px solid var(--accent);
+  padding-left: 18px;
+}
+.rescue.on { display: block; }
+.rescue h2 {
+  font: 700 15px/var(--lh) ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.rescue p { font-size: 15px; color: var(--ink-soft); }
+.copyrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.link {
+  flex: 1 1 240px;
+  min-width: 0;
+  font: 400 13px/calc(var(--lh) - 8px) ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--ink);
+  background: var(--page-edge);
+  border: 1px solid var(--ink-faint);
+  border-radius: 3px;
+  padding: 4px 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.copy {
+  font: 600 14px/1 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: transparent;
+  border: 1.5px solid var(--ink-faint);
+  border-radius: 3px;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.copy:hover, .copy:focus-visible { border-color: var(--accent); color: var(--accent); }
+
+/* ─── Özellikler: kart değil, marj notu ───────────────────────────────── */
+h2.sec {
+  font: 700 12px/var(--lh) ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+ul.notes { list-style: none; padding: 0; }
+ul.notes li {
+  position: relative;
+  padding-left: 26px;
+  line-height: var(--lh);
+  color: var(--ink-soft);
+}
+ul.notes li b { color: var(--ink); font-weight: 600; }
+/* elle çizilmiş çentik */
+ul.notes li::before {
+  content: "";
+  position: absolute;
+  left: 2px; top: 15px;
+  width: 13px; height: 2px;
+  background: var(--accent);
+  opacity: .8;
+}
+
+/* ─── Alt bilgi ───────────────────────────────────────────────────────── */
+footer { border-top: 1px solid var(--rule); }
+.meta {
+  font: 400 13px/var(--lh) ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--ink-faint);
+}
+.meta a { color: var(--ink-soft); text-decoration-color: var(--ink-faint); }
+.meta a:hover { color: var(--accent); }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+/* ─── Açılış: oyunun splash'indeki harf harf düşme ────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  h1 span { animation: drop .5s cubic-bezier(.2, .8, .3, 1) backwards; }
+  @keyframes drop {
+    from { transform: translateY(-.42em); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+  }
+}
+
+@media (max-width: 560px) {
+  :root { --marginX: 46px; }
+  .holes { display: none; }
+  .sheet::before { left: 22px; }
+  body { font-size: 16px; }
+  .tagline { font-size: 19px; }
+  .mark { width: 48px; height: 48px; margin-right: 12px; }
+}
+</style>
+
+<div class="sheet">
+  <div class="holes" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <header class="band">
+    <span class="eyebrow">Android · Google Play</span>
+  </header>
+
+  <section class="band">
+    <h1 aria-label="Inkpage">
+      <img class="mark" src="data:image/webp;base64,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" alt="" width="160" height="160"><span>I</span><span>N</span><span>K</span><span>P</span><span>A</span><span>G</span><span>E</span>
+    </h1>
+    <p class="tagline">A tiny ink drop defends the bottom of the page. You have a slingshot and a pen.</p>
+  </section>
+
+  <section class="band">
+    <a class="get" id="get" href="https://play.google.com/store/apps/details?id=com.evrehim.inkpage">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v13m0 0 5-5m-5 5-5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 19h18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Download on Google Play
+    </a>
+    <p class="free">Free to play. Contains ads.</p>
+  </section>
+
+  <section class="band rescue" id="rescue">
+    <h2>Didn't open?</h2>
+    <p>Instagram's built-in browser blocks Play Store links on some phones. Copy this and paste it into Chrome — or search <b>Inkpage</b> in the Play Store app.</p>
+    <div class="copyrow">
+      <code class="link" id="url">https://play.google.com/store/apps/details?id=com.evrehim.inkpage</code>
+      <button class="copy" type="button" id="copy">Copy link</button>
+    </div>
+  </section>
+
+  <section class="band">
+    <h2 class="sec">What it is</h2>
+    <ul class="notes">
+      <li><b>Two weapons, one resource.</b> The sling is free and endless. The pen fires fast but drinks ink.</li>
+      <li><b>Drawn like a real notebook.</b> Twelve themes, from ruled paper to sumi-e to blueprint.</li>
+      <li><b>Short runs.</b> Built for the three minutes you actually have.</li>
+      <li><b>Plays in 21 languages.</b></li>
+    </ul>
+  </section>
+
+  <footer class="band">
+    <p class="meta">
+      <a href="https://instagram.com/inkpage_game">@inkpage_game</a> ·
+      <a href="https://sites.google.com/view/inkpage">Privacy</a> ·
+      <a href="mailto:newbardevelop@outlook.com">newbardevelop@outlook.com</a>
+    </p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  /* Sayfanın asıl işi: Play Store açılmazsa çıkış yolu göster.
+     Bağlantıya basıldıktan ~1,4 sn sonra HÂLÂ buradaysak açılmamıştır. */
+  var left = false;
+  ['pagehide', 'blur'].forEach(function (e) {
+    window.addEventListener(e, function () { left = true; });
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') left = true;
+  });
+
+  document.getElementById('get').addEventListener('click', function () {
+    setTimeout(function () {
+      if (!left && document.visibilityState === 'visible') {
+        document.getElementById('rescue').classList.add('on');
+      }
+    }, 1400);
+  });
+
+  var btn = document.getElementById('copy');
+  btn.addEventListener('click', function () {
+    var node = document.getElementById('url');
+    var url = node.textContent.trim();
+    function select() {
+      var r = document.createRange();
+      r.selectNodeContents(node);
+      var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+    function done() {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy link'; }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, select);
+    } else { select(); }
+  });
+
+  /* Harf harf düşme — oyunun splash ekranındaki jestin aynısı. */
+  document.querySelectorAll('h1 span').forEach(function (s, i) {
+    s.style.animationDelay = (i * 0.06 + 0.1) + 's';
+  });
+}());
+</script>
